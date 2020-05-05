@@ -1,0 +1,179 @@
+#!/bin/bash
+
+# MIT License
+
+# Copyright (c) 2020 Eric Villa
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# ==========================================================================================
+
+# parse_yaml function.
+# Copyright (c) 2017 Jonathan Peres
+# Based on https://gist.github.com/pkuczynski/8665367
+# Repository URL: https://github.com/jasperes/bash-yaml/blob/master/script/yaml.sh
+
+parse_yaml() {
+    local yaml_file=$1
+    local prefix=$2
+    local s
+    local w
+    local fs
+
+    s='[[:space:]]*'
+    w='[a-zA-Z0-9_.-]*'
+    fs="$(echo @|tr @ '\034')"
+
+    (
+        sed -e '/- [^\“]'"[^\']"'.*: /s|\([ ]*\)- \([[:space:]]*\)|\1-\'$'\n''  \1\2|g' |
+
+        sed -ne '/^--/s|--||g; s|\"|\\\"|g; s/[[:space:]]*$//g;' \
+            -e "/#.*[\"\']/!s| #.*||g; /^#/s|#.*||g;" \
+            -e "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+            -e "s|^\($s\)\($w\)${s}[:-]$s\(.*\)$s\$|\1$fs\2$fs\3|p" |
+
+        awk -F"$fs" '{
+            indent = length($1)/2;
+            if (length($2) == 0) { conj[indent]="+";} else {conj[indent]="";}
+            vname[indent] = $2;
+            for (i in vname) {if (i > indent) {delete vname[i]}}
+                if (length($3) > 0) {
+                    vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+                    printf("%s%s%s%s=(\"%s\")\n", "'"$prefix"'",vn, $2, conj[indent-1],$3);
+                }
+            }' |
+
+        sed -e 's/_=/+=/g' |
+
+        awk 'BEGIN {
+                FS="=";
+                OFS="="
+            }
+            /(-|\.).*=/ {
+                gsub("-|\\.", "_", $1)
+            }
+            { print }'
+    ) < "$yaml_file"
+}
+
+create_variables() {
+    local yaml_file="$1"
+    local prefix="$2"
+    eval "$(parse_yaml "$yaml_file" "$prefix")"
+}
+
+# ==========================================================================================
+
+while getopts ":hr:" opt; do
+  case ${opt} in
+    h )
+      echo "Usage:"
+      echo "    rakete -r <remote-ip-address-or-hostname>"
+      exit 0
+      ;;
+    r )
+      remote=$OPTARG
+      ;;
+    \? ) 
+      echo "Invalid option: $OPTARG" 1>&2
+      exit 1
+      ;;
+    : )
+      echo "Invalid option: $OPTARG requires an argument" 1>&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+if [ -z $remote ]; then
+  echo "Remote IP address / hostname not provided."
+  echo ""
+  echo "Usage:"
+      echo "    rakete -r <remote-ip-address-or-hostname>"
+  exit 1
+fi
+
+function before_exit() {
+  if [ -f .rakete/tmp/cmds.sh ]; then
+    rm .rakete/tmp/cmds.sh
+  fi
+
+  if [ -f .rakete/tmp/deploy.zip ]; then
+    rm .rakete/tmp/deploy.zip
+  fi
+}
+
+trap before_exit EXIT
+
+if [[ -d ".rakete" ]]; then
+  if [[ -f ".rakete/vars.yml" ]]; then
+    if [[ ! -f ".rakete/cmds.yml" ]]; then
+      echo "cmds.yml file is not present in the .rakete directory."
+      exit 1
+    fi
+  else
+    echo "vars.yml file is not present in the .rakete directory."
+    exit 1
+  fi
+else
+  echo ".rakete directory is not present in the current directory."
+  exit 1
+fi
+
+create_variables .rakete/cmds.yml
+create_variables .rakete/vars.yml
+
+i=0
+
+desc=${cmds__desc[$i]}
+cmd=${cmds__cmd[$i]}
+
+if [ -f .rakete/cmds.sh ]; then
+  rm .rakete/cmds.sh
+fi
+
+touch .rakete/cmds.sh
+
+while [[ ! -z $desc ]] && [[ ! -z $cmd ]]
+do
+  echo "echo -e \"\"" >> .rakete/cmds.sh
+  echo "echo -e \"\x1B[31m- ${desc}\x1B[0m\"" >> .rakete/cmds.sh
+  echo $cmd >> .rakete/cmds.sh
+
+  i=$((i+1))
+
+  desc=${cmds__desc[$i]}
+  cmd=${cmds__cmd[$i]}
+done
+
+rm .rakete/deploy.zip
+
+echo -e ""
+echo -e "\x1B[31m- Create .zip\x1B[0m"
+zip -r .rakete/deploy.zip .
+
+echo -e ""
+echo -e "\x1B[31m- Copy .zip to ${remote}\x1B[0m"
+scp -i $ssh_key .rakete/deploy.zip ${remote_user}@${remote}:${remote_zip_folder}
+
+ssh -t -i $ssh_key ${remote_user}@${remote} < .rakete/cmds.sh
+
+exit 0
