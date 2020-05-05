@@ -1,7 +1,7 @@
 # Rakete
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-**Rakete** is a tool that provides you an easy way to deploy a .zip archive to a remote machine, regardless of whether it a virtual machine on AWS or a Raspberry on your local network, and to issue commands to the remote machine once the .zip archive is uploaded.
+**Rakete** is a tool that provides you an easy way to deploy a .zip archive to a remote machine, regardless of whether it's a virtual machine on AWS or a Raspberry on your local network, and to issue commands to the remote machine once the .zip archive is uploaded.
 
 For what concerns the upload Rakete relies on **scp**, while for the issue of one or more commands to the remote machine, it exploits **ssh**.
 
