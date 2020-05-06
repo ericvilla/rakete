@@ -104,7 +104,7 @@ done
 shift $((OPTIND -1))
 
 if [ -z $remote ]; then
-  echo "Remote IP address / hostname not provided."
+  echo "Remote IP address or hostname not provided."
   echo ""
   echo "Usage:"
       echo "    rakete -r <remote-ip-address-or-hostname>"
