@@ -1,5 +1,5 @@
 # Rakete
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/ericvilla/rakete?sort=semver) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 **Rakete** is a tool that provides you an easy way to deploy a .zip archive to a remote host and to issue commands to the remote host once the .zip archive is uploaded.
 Rakete should be run from the directory you want to compress the content of.
