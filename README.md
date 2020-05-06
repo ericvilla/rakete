@@ -1,14 +1,11 @@
 # Rakete
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-**Rakete** is a tool that provides you an easy way to deploy a .zip archive to a remote machine, regardless of whether it's a virtual machine on AWS or a Raspberry on your local network, and to issue commands to the remote machine once the .zip archive is uploaded.
-
-For what concerns the upload Rakete relies on **scp**, while for the issue of one or more commands to the remote machine, it exploits **ssh**.
-
-The reason why I developed Rakete was to provide a tool to deploy a Rails web app (but I'm sure there are plenty of other use cases) in a quick but solid way on a remote virtual machine.
+**Rakete** is a tool that provides you an easy way to deploy a .zip archive to a remote host and to issue commands to the remote host once the .zip archive is uploaded.
+Rakete should be run from the directory you want to compress the content of.
+Rakete uses **scp** to upload the .zip archive from the local to the remote host. Once the upload is completed, a preconfigured list of commands are executed on the server using a simple **ssh** session.
 
 ## Installation
-### Mac OS
 Download:
 ```
 curl https://raw.githubusercontent.com/ericvilla/rakete/master/rakete -o /usr/local/bin/rakete
@@ -22,7 +19,7 @@ chmod +x /usr/local/bin/rakete
 Before you can properly use Rakete, you should configure a **.rakete** directory inside you project directory.
 This directory should contain two configuration files:
 - **vars.yml**, containing the variables needed to upload the .zip archive correctly;
-- **cmds.yml**, containing a list of commands that will be issued to the remote machine once the .zip archive is uploaded.
+- **cmds.yml**, containing a list of commands that will be issued to the remote host once the .zip archive is uploaded.
 
 ### vars.yml
 ```
@@ -60,11 +57,11 @@ cmds:
 
  ### Usage
 
- From your Terminal, move to your project directory. If you have already configured the .rakete folder and you know your remote machine's IP address / hostname, type the following command:
+ From your terminal, move to your project directory. If you have already configured the .rakete folder and you know your remote host's IP address or hostname, type the following command:
 
  
  ```
- rakete -r <REMOTE-MACHINE-IP-ADDRESS-OR-HOSTNAME>
+ rakete -r <REMOTE-HOST-IP-ADDRESS-OR-HOSTNAME>
  ```
 
-Rakete will create a .zip archive from your project directory, upload it to the remote machine and issue the previously configured commands to the remote machine.
+Rakete will create a .zip archive from your project directory, upload it to the remote host and issue the previously configured commands to the remote host.
